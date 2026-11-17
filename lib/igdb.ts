@@ -1,10 +1,12 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import type { Game } from "@/lib/types";
+import type { Game, GameDetail } from "@/lib/types";
 
 const IGDB_URL = "https://api.igdb.com/v4";
+const IMAGE_BASE = "https://images.igdb.com/igdb/image/upload";
 
 type PopularityRow = { game_id: number; value: number };
+
 type IgdbGame = {
   id: number;
   name: string;
@@ -12,6 +14,21 @@ type IgdbGame = {
   first_release_date?: number; // in unix seconds
   total_rating?: number; // 0 to 100
   cover?: { image_id: string };
+};
+
+type IgdbGameDetail = IgdbGame & {
+  summary?: string;
+  total_rating_count?: number;
+  url?: string;
+  genres?: { name: string }[];
+  platforms?: { name: string }[];
+  involved_companies?: {
+    developer: boolean;
+    publisher: boolean;
+    company: { name: string };
+  }[];
+  artworks?: { image_id: string }[];
+  screenshots?: { image_id: string }[];
 };
 
 // Gets access token from Twitch using secrets
@@ -92,4 +109,53 @@ export async function getPopularGames(): Promise<Game[]> {
     .map(toGame)
     .filter((g) => g.coverUrl)
     .slice(0, 48);
+}
+
+// For detailed view of each game, queries for all information and returns in GameDetail structure to be displayed
+export async function getGameBySlug(slug: string): Promise<GameDetail | null> {
+  "use cache";
+  cacheLife("days");
+
+  // Slug comes from URL, so only allow safe characters before putting it into query string
+  if (!/^[a-z0-9._-]+$/.test(slug)) return null;
+
+  const results = await igdbQuery<IgdbGameDetail[]>(
+    "games",
+    `fields name,slug,summary,first_release_date,total_rating,total_rating_count,url,
+      cover.image_id,genres.name,platforms.name,
+      involved_companies.developer,involved_companies.publisher,involved_companies.company.name,
+      artworks.image_id,screenshots.image_id;
+     where slug = "${slug}"; limit 1;`,
+  );
+
+  const g = results[0];
+  if (!g) return null;
+
+  const companies = g.involved_companies ?? [];
+  const backdropId = g.artworks?.[0]?.image_id ?? g.screenshots?.[0]?.image_id;
+
+  return {
+    ...toGame(g),
+    coverUrl: g.cover
+      ? `${IMAGE_BASE}/t_cover_big_2x/${g.cover.image_id}.jpg`
+      : undefined,
+    summary: g.summary,
+    releaseDate: g.first_release_date
+      ? new Date(g.first_release_date * 1000).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          timeZone: "UTC",
+        })
+      : undefined,
+    genres: g.genres?.map((x) => x.name) ?? [],
+    platforms: g.platforms?.map((x) => x.name) ?? [],
+    developers: companies.filter((c) => c.developer).map((c) => c.company.name),
+    publishers: companies.filter((c) => c.publisher).map((c) => c.company.name),
+    ratingCount: g.total_rating_count,
+    backdropUrl: backdropId
+      ? `${IMAGE_BASE}/t_1080p/${backdropId}.jpg`
+      : undefined,
+    igdbUrl: g.url,
+  };
 }
