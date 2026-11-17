@@ -159,3 +159,27 @@ export async function getGameBySlug(slug: string): Promise<GameDetail | null> {
     igdbUrl: g.url,
   };
 }
+
+// For searching games by name
+export async function searchGames(query: string): Promise<Game[]> {
+  "use cache";
+  cacheLife("hours");
+
+  const clean = query
+    .replace(/["\\;\r\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+
+  if (clean.length < 2) return [];
+
+  const games = await igdbQuery<IgdbGame[]>(
+    "games",
+    `search "${clean}"; fields name,slug,first_release_date,total_rating,cover.image_id;limit 40;`,
+  );
+
+  return games
+    .map(toGame)
+    .filter((g) => g.coverUrl)
+    .slice(0, 24);
+}

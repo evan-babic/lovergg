@@ -2,6 +2,7 @@ import Link from "next/link";
 import GameCard from "@/components/GameCard";
 import { getPopularGames } from "@/lib/igdb";
 
+{/* Shows 4 most trending games on main page */}
 export default async function FeaturedGames() {
   const games = (await getPopularGames()).slice(0, 4);
 

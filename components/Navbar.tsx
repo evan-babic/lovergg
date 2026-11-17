@@ -1,6 +1,7 @@
 // Basic navbar code emulating Letterboxd style
 
 import Link from "next/link";
+import Form from "next/form";
 
 const links = [
   { href: "/games", label: "Games" },
@@ -38,13 +39,14 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <form action="/games" className="ml-auto hidden sm:block">
+        <Form action="/games" className="ml-auto hidden sm:block">
           <div className="relative">
             <input
               type="search"
               name="q"
               aria-label="Search games"
               className="w-40 rounded-full bg-zinc-700 py-1.5 pl-4 pr-9 text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Search"
             />
             <button
               type="submit"
@@ -67,7 +69,7 @@ export default function Navbar() {
               </svg>
             </button>
           </div>
-        </form>
+        </Form>
       </nav>
     </header>
   );

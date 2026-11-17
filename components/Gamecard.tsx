@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Game } from "@/lib/types";
 
+{
+  /* GameCard component, displaying basic information about games */
+}
 export default function GameCard({ game }: { game: Game }) {
   const meta = [
     game.year,
