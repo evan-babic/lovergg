@@ -1,14 +1,3 @@
-// Game data structure to be used throughout website
-export type Game = {
-  id: number;
-  slug: string;
-  title: string;
-  year: number;
-  rating: number;
-  coverUrl?: string;
-  color: string;
-};
-
 // Placeholder games for building UI
 export const trendingGames: Game[] = [
   {

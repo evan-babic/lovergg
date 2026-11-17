@@ -1,12 +1,15 @@
+import Link from "next/link";
 import GameCard from "@/components/GameCard";
-import { trendingGames } from "@/lib/mock-games";
+import { getPopularGames } from "@/lib/igdb";
 
-export default function FeaturedGames() {
+export default async function FeaturedGames() {
+  const games = (await getPopularGames()).slice(0, 4);
+
   return (
     <section className="mx-auto max-w-5xl px-6">
       <div className="mb-4 flex items-baseline justify-between border-b border-zinc-800 pb-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-          Trending this week
+          Trending now
         </h2>
         <a
           href="/games"
@@ -16,8 +19,8 @@ export default function FeaturedGames() {
         </a>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-        {trendingGames.slice(0, 5).map((game) => (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+        {games.map((game) => (
           <GameCard key={game.id} game={game} />
         ))}
       </div>

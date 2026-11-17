@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Hero() {
   return (
-    <section className="mx-auto max-w-5xl px-6 py-24 text-center">
+    <section className="mx-auto max-w-5xl px-6 pt-24 pb-4 text-center">
       <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
         Track the games you play. Share the ones you love.
       </h1>
