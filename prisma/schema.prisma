@@ -1,0 +1,117 @@
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  bio           String?
+  reviews       Review[]
+  favorites     Favorite[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+model Game {
+  id          Int    @id
+  slug        String @unique
+  title       String
+  coverId     String?
+  releaseYear Int?
+  reviews     Review[]
+  favorites   Favorite[]
+
+  @@map("game")
+}
+
+model Review {
+  id        String @id @default(cuid())
+  userId    String
+  gameId    Int
+  rating    Int?
+  body      String?
+  spoilers  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id])
+
+  @@unique([userId, gameId])
+  @@index([gameId, createdAt])
+  @@index([userId, createdAt])
+  @@map("review")
+}
+
+model Favorite {
+  userId   String
+  gameId   Int
+  position Int
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game     Game @relation(fields: [gameId], references: [id])
+
+  @@id([userId, position])
+  @@unique([userId, gameId])
+  @@map("favorite")
+}
