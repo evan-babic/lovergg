@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import Form from "next/form";
+import { Suspense } from "react";
+import UserMenu from "./UserMenu";
 
 const links = [
   { href: "/games", label: "Games" },
@@ -20,16 +22,9 @@ export default function Navbar() {
         </Link>
 
         <ul className="flex items-center gap-5 text-xs font-semibold uppercase tracking-wider text-zinc-400">
-          <li>
-            <Link href="/login" className="hover:text-white">
-              Sign in
-            </Link>
-          </li>
-          <li>
-            <Link href="/signup" className="hover:text-white">
-              Create account
-            </Link>
-          </li>
+          <Suspense fallback={<li aria-hidden="true" className="h-4 w-40" />}>
+            <UserMenu />
+          </Suspense>          
           {links.map((link) => (
             <li key={link.href} className="hidden md:block">
               <Link href={link.href} className="hover:text-white">
