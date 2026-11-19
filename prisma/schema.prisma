@@ -18,6 +18,9 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  bio           String?
+  reviews       Review[]
+  favorites     Favorite[]
 
   @@unique([email])
   @@map("user")
@@ -69,4 +72,46 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Game {
+  id          Int    @id
+  slug        String @unique
+  title       String
+  coverId     String?
+  releaseYear Int?
+  reviews     Review[]
+  favorites   Favorite[]
+
+  @@map("game")
+}
+
+model Review {
+  id        String @id @default(cuid())
+  userId    String
+  gameId    Int
+  rating    Int?
+  body      String?
+  spoilers  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id])
+
+  @@unique([userId, gameId])
+  @@index([gameId, createdAt])
+  @@index([userId, createdAt])
+  @@map("review")
+}
+
+model Favorite {
+  userId   String
+  gameId   Int
+  position Int
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game     Game @relation(fields: [gameId], references: [id])
+
+  @@id([userId, position])
+  @@unique([userId, gameId])
+  @@map("favorite")
 }
