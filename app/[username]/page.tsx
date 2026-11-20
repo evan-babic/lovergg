@@ -46,7 +46,7 @@ async function Profile({ params }: { params: Params }) {
       </div>
 
       {profile.bio && (
-        <p className="mt-6 max-w-2xl leading-relaxed text-zinc-300">
+        <p className="mt-6 max-w-2xl whitespace-pre-line leading-relaxed text-zinc-300">
           {profile.bio}
         </p>
       )}
