@@ -40,6 +40,11 @@ export default async function UserMenu() {
         )}
       </li>
       <li>
+        <Link href="/settings" className="hover:text-white">
+          Settings
+        </Link>
+      </li>
+      <li>
         <SignOutButton />
       </li>
     </>

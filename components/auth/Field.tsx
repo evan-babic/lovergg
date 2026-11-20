@@ -7,6 +7,7 @@ export default function Field({
   autoComplete,
   hint,
   error,
+  defaultValue,
 }: {
   label: string;
   name: string;
@@ -14,6 +15,7 @@ export default function Field({
   autoComplete?: string;
   hint?: string;
   error?: string;
+  defaultValue?: string;
 }) {
   return (
     <div>
@@ -29,6 +31,7 @@ export default function Field({
         name={name}
         type={type}
         autoComplete={autoComplete}
+        defaultValue={defaultValue}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
         className="mt-1 w-full rounded-md bg-zinc-800 px-3 py-2 text-sm text-white outline-none ring-1 ring-zinc-700 focus:ring-2 focus:ring-indigo-500"

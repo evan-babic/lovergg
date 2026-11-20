@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Field from "@/components/auth/Field";
@@ -15,6 +15,19 @@ export default function SignUpForm() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Next.js keeps a hidden page's state alive when you navigate away, so without this
+  // the form would come back filled in and stuck on "Creating account…".
+  useLayoutEffect(() => {
+    const form = formRef.current;
+    return () => {
+      form?.reset();
+      setErrors({});
+      setFormError(null);
+      setPending(false);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -51,12 +64,12 @@ export default function SignUpForm() {
       return;
     }
 
-    router.push("/");
+    router.push(`/${parsed.data.username.toLowerCase()}`);
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="space-y-5">
+    <form onSubmit={handleSubmit} noValidate className="space-y-5" ref={formRef}>
       {formError && (
         <p
           role="alert"

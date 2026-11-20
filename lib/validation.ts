@@ -1,3 +1,7 @@
+{
+  /* Validation patterns via 'zod' for different schema */
+}
+
 import { z } from "zod";
 import { USERNAME_PATTERN, isReservedUsername } from "@/lib/usernames";
 
@@ -27,4 +31,17 @@ export const signUpSchema = z.object({
 export const loginSchema = z.object({
   identifier: z.string().trim().min(1, "Enter your username or email"),
   password: z.string().min(1, "Enter your password"),
+});
+
+export const profileSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Enter your name")
+    .max(50, "Keep it under 50 characters."),
+  bio: z
+    .string()
+    .trim()
+    .max(250, "Keep your bio under 250 characters")
+    .transform((value) => (value === "" ? null : value)),
 });
