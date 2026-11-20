@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
 import SignOutButton from "@/components/auth/SignOutButton";
+import { getSession } from "@/lib/session";
 
 export default async function UserMenu() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
 
   if (!session) {
     return (
@@ -28,7 +27,18 @@ export default async function UserMenu() {
 
   return (
     <>
-      <li className="normal-case tracking-normal text-zinc-200">@{handle}</li>
+      <li className="normal-case tracking-normal">
+        {user.username ? (
+          <Link
+            href={`/${user.username}`}
+            className="text-zinc-200 hover:text-white"
+          >
+            @{handle}
+          </Link>
+        ) : (
+          <span className="text-zinc-200">@{handle}</span>
+        )}
+      </li>
       <li>
         <SignOutButton />
       </li>
