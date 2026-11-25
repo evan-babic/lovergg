@@ -183,3 +183,151 @@ export async function searchGames(query: string): Promise<Game[]> {
     .filter((g) => g.coverUrl)
     .slice(0, 24);
 }
+
+{
+  /* Below is used for browsing by specific fields */
+}
+
+export type NamedOption = { id: number; name: string; slug: string };
+export type PlatformOption = NamedOption & { label: string };
+
+export async function getGenres(): Promise<NamedOption[]> {
+  "use cache";
+  cacheLife("days");
+  return igdbQuery<NamedOption[]>(
+    "genres",
+    "fields name,slug; sort name asc; limit 50;",
+  );
+}
+
+// IGDB ids: PC, PS5, Xbox Series X|S, Switch, PS4, Xbox One, Mac, Linux
+const PLATFORM_IDS = [6, 167, 169, 130, 48, 49, 14, 3];
+
+export async function getPlatforms(): Promise<PlatformOption[]> {
+  "use cache";
+  cacheLife("days");
+
+  const rows = await igdbQuery<NamedOption[]>(
+    "platforms",
+    `fields name,slug; where id = (${PLATFORM_IDS.join(",")}) | name = "Nintendo Switch 2"; limit 20;`,
+  );
+
+  const rank = (id: number) => {
+    const i = PLATFORM_IDS.indexOf(id);
+    return i === -1 ? 2.5 : i;
+  };
+  return rows
+    .sort((a, b) => rank(a.id) - rank(b.id))
+    .map((p) => ({ ...p, label: p.name.replace(" (Microsoft Windows)", "") }));
+}
+
+// IGDB popularity types: 1 = page visits, 2 = want to play, 4 = played
+const POPULARITY_TYPES = { popular: 1, wanted: 2, played: 4 } as const;
+
+async function getPopularityRanking(type: number): Promise<number[]> {
+  "use cache";
+  cacheLife("hours");
+  const rows = await igdbQuery<{ game_id: number }[]>(
+    "popularity_primitives",
+    `fields game_id,value; where popularity_type = ${type}; sort value desc; limit 500;`,
+  );
+  return rows.map((r) => r.game_id);
+}
+
+export const PAGE_SIZE = 30;
+const LIST_FIELDS =
+  "fields name,slug,first_release_date,total_rating,cover.image_id;";
+
+export type BrowseQuery = {
+  q?: string;
+  year?: number;
+  month?: number;
+  genreId?: number;
+  platformId?: number;
+  exclusive?: boolean;
+  sort: "popular" | "wanted" | "played" | "rating";
+  page: number;
+};
+
+function toPage(rows: IgdbGame[]) {
+  return {
+    games: rows
+      .slice(0, PAGE_SIZE)
+      .filter((g) => g.cover)
+      .map(toGame),
+    hasNext: rows.length > PAGE_SIZE, // we ask for one extra row to know
+  };
+}
+
+export async function browseGames(
+  query: BrowseQuery,
+): Promise<{ games: Game[]; hasNext: boolean }> {
+  "use cache";
+  cacheLife("hours");
+
+  // Build the "where" filters. Only numbers reach this point (the page looked up
+  // genre and platform ids itself), so nothing user-typed lands in the query.
+  const filters: string[] = [];
+  if (query.year) {
+    const start = Date.UTC(query.year, query.month ? query.month - 1 : 0, 1);
+    const end = query.month
+      ? Date.UTC(query.year, query.month, 1)
+      : Date.UTC(query.year + 1, 0, 1);
+    filters.push(
+      `first_release_date >= ${start / 1000} & first_release_date < ${end / 1000}`,
+    );
+  }
+  if (query.genreId) filters.push(`genres = (${query.genreId})`);
+  if (query.platformId) {
+    filters.push(
+      query.exclusive
+        ? `platforms = {${query.platformId}}`
+        : `platforms = (${query.platformId})`,
+    );
+  }
+  const offset = (query.page - 1) * PAGE_SIZE;
+
+  // 1. Text search (results come back by relevance)
+  const term = query.q
+    ?.replace(/["\\;\r\n]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+  if (term && term.length >= 2) {
+    const where = filters.length ? `where ${filters.join(" & ")};` : "";
+    const rows = await igdbQuery<IgdbGame[]>(
+      "games",
+      `search "${term}"; ${LIST_FIELDS} ${where} limit ${PAGE_SIZE + 1}; offset ${offset};`,
+    );
+    return toPage(rows);
+  }
+
+  // 2. Highest rated (ignore games with very few ratings)
+  if (query.sort === "rating") {
+    const where = ["total_rating_count >= 25", ...filters].join(" & ");
+    const rows = await igdbQuery<IgdbGame[]>(
+      "games",
+      `${LIST_FIELDS} where ${where}; sort total_rating desc; limit ${PAGE_SIZE + 1}; offset ${offset};`,
+    );
+    return toPage(rows);
+  }
+
+  // 3. Popularity sorts: take IGDB's top 500, apply the filters, keep its order
+  const ranking = await getPopularityRanking(POPULARITY_TYPES[query.sort]);
+  if (ranking.length === 0) return { games: [], hasNext: false };
+
+  const where = [`id = (${ranking.join(",")})`, ...filters].join(" & ");
+  const rows = await igdbQuery<IgdbGame[]>(
+    "games",
+    `${LIST_FIELDS} where ${where}; limit 500;`,
+  );
+  const position = new Map(ranking.map((id, i) => [id, i]));
+  const ordered = rows
+    .filter((g) => g.cover)
+    .sort((a, b) => (position.get(a.id) ?? 0) - (position.get(b.id) ?? 0));
+
+  return {
+    games: ordered.slice(offset, offset + PAGE_SIZE).map(toGame),
+    hasNext: ordered.length > offset + PAGE_SIZE,
+  };
+}
